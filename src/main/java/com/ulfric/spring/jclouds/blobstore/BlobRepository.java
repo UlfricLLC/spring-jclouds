@@ -6,4 +6,6 @@ public interface BlobRepository {
 
 	<T> T get(String key, Class<T> type);
 
+	void delete(String key);
+
 }

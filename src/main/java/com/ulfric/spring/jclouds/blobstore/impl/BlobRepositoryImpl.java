@@ -76,6 +76,11 @@ public class BlobRepositoryImpl implements BlobRepository {
 		}
 	}
 
+	@Override
+	public void delete(String key) {
+		getBlobStore().removeBlob(containerName, key);
+	}
+
 	public BlobStore getBlobStore() {
 		return context.getBlobStore();
 	}
