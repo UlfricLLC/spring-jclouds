@@ -79,13 +79,15 @@ public class BlobRepositoryImpl implements BlobRepository {
 	}
 
 	@Override
-	public <T> List<T> list(Class<T> type) {
-		return list(type, null, getBlobStore());
+	public <T> List<T> list(String bucket, Class<T> type) {
+		return list(bucket, type, null, getBlobStore());
 	}
 
-	private <T> List<T> list(Class<T> type, String afterMarker, BlobStore blobStore) {
-		ListContainerOptions options = new ListContainerOptions();
-		options.afterMarker(afterMarker);
+	private <T> List<T> list(String bucket, Class<T> type, String afterMarker, BlobStore blobStore) {
+		ListContainerOptions options = ListContainerOptions.Builder
+				.afterMarker(afterMarker)
+				.prefix(bucket)
+				.delimiter("/");
 
 		PageSet<? extends StorageMetadata> pages = blobStore.list(containerName, options);
 		List<T> values = pages.stream()
@@ -96,7 +98,7 @@ public class BlobRepositoryImpl implements BlobRepository {
 
 		String next = pages.getNextMarker();
 		if (!StringUtils.isEmpty(next)) {
-			values.addAll(list(type, next, blobStore));
+			values.addAll(list(bucket, type, next, blobStore));
 		}
 
 		return values;

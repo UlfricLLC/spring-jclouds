@@ -10,6 +10,6 @@ public interface BlobRepository {
 
 	void delete(String key);
 
-	<T> List<T> list(Class<T> type);
+	<T> List<T> list(String bucket, Class<T> type);
 
 }
