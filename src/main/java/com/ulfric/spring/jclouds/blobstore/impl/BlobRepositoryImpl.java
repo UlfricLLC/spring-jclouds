@@ -1,6 +1,8 @@
 package com.ulfric.spring.jclouds.blobstore.impl;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;
@@ -9,9 +11,14 @@ import org.jclouds.ContextBuilder;
 import org.jclouds.blobstore.BlobStore;
 import org.jclouds.blobstore.BlobStoreContext;
 import org.jclouds.blobstore.domain.Blob;
+import org.jclouds.blobstore.domain.PageSet;
+import org.jclouds.blobstore.domain.StorageMetadata;
+import org.jclouds.blobstore.domain.StorageType;
+import org.jclouds.blobstore.options.ListContainerOptions;
 import org.jclouds.io.Payload;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
+import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -63,6 +70,39 @@ public class BlobRepositoryImpl implements BlobRepository {
 	@Override
 	public <T> T get(String key, Class<T> type) {
 		Blob blob = getBlobStore().getBlob(containerName, key);
+		return translate(blob, type);
+	}
+
+	@Override
+	public void delete(String key) {
+		getBlobStore().removeBlob(containerName, key);
+	}
+
+	@Override
+	public <T> List<T> list(Class<T> type) {
+		return list(type, null, getBlobStore());
+	}
+
+	private <T> List<T> list(Class<T> type, String afterMarker, BlobStore blobStore) {
+		ListContainerOptions options = new ListContainerOptions();
+		options.afterMarker(afterMarker);
+
+		PageSet<? extends StorageMetadata> pages = blobStore.list(containerName, options);
+		List<T> values = pages.stream()
+			.filter(meta -> meta.getType() == StorageType.BLOB)
+			.map(meta -> blobStore.getBlob(containerName, meta.getName()))
+			.map(blob -> translate(blob, type))
+			.collect(Collectors.toList());
+
+		String next = pages.getNextMarker();
+		if (!StringUtils.isEmpty(next)) {
+			values.addAll(list(type, next, blobStore));
+		}
+
+		return values;
+	}
+
+	private <T> T translate(Blob blob, Class<T> type) {
 		if (blob == null) {
 			return null;
 		}
@@ -74,11 +114,6 @@ public class BlobRepositoryImpl implements BlobRepository {
 			exception.printStackTrace(); // TODO proper error handling
 			return null;
 		}
-	}
-
-	@Override
-	public void delete(String key) {
-		getBlobStore().removeBlob(containerName, key);
 	}
 
 	public BlobStore getBlobStore() {
