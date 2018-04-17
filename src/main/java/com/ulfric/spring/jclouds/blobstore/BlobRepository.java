@@ -27,9 +27,6 @@ public class BlobRepository {
 
 	private final ObjectMapper objectMapper;
 	private final String containerName;
-	private final String jcloudsProvider;
-	private final String jcloudsId;
-	private final String jcloudsSecret;
 	private final BlobStoreContext context;
 
 	public BlobRepository(ObjectMapper objectMapper,
@@ -39,21 +36,12 @@ public class BlobRepository {
 			@Value("${JCLOUDS_SECRET:}") String jcloudsSecret) {
 		this.objectMapper = objectMapper;
 		this.containerName = containerName;
-		this.jcloudsProvider = jcloudsProvider;
-		this.jcloudsId = jcloudsId;
-		this.jcloudsSecret = jcloudsSecret;
 
-		this.context = createBucket();
-	}
-
-	private BlobStoreContext createBucket() {
-		BlobStoreContext context = ContextBuilder.newBuilder(jcloudsProvider)
+		context = ContextBuilder.newBuilder(jcloudsProvider)
 				.credentials(jcloudsId, jcloudsSecret.replace("\\n", "\n"))
 				.build(BlobStoreContext.class);
 
 		getBlobStore().createContainerInLocation(null, containerName);
-
-		return context;
 	}
 
 	public void put(String key, Object value) {
